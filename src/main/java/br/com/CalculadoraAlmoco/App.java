@@ -18,13 +18,14 @@ public class App {
 
     public static void gerarPlanilha(List<GastoItem> itensComida, List<GastoEletrico> itensEletricos, String caminhoArquivo) throws IOException {
         Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Custo e Consumo do Almoço");
+        Sheet sheet = workbook.createSheet("Relatório Detalhado de Custos");
 
-        // Estilos
         CellStyle currencyStyle = workbook.createCellStyle();
         currencyStyle.setDataFormat(workbook.createDataFormat().getFormat("\"R$\" #,##0.00"));
         CellStyle kwhStyle = workbook.createCellStyle();
         kwhStyle.setDataFormat(workbook.createDataFormat().getFormat("0.0000\" kWh\""));
+        CellStyle genericNumberStyle = workbook.createCellStyle();
+        genericNumberStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00"));
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
         CellStyle headerStyle = workbook.createCellStyle();
@@ -33,54 +34,75 @@ public class App {
         int rowNum = 0;
         double totalComida = 0;
 
-        // Seção de Comida
+        String[] colunasComida = {"Item", "Tipo de Cálculo", "Preço Pago (R$)", "Peso/Unid. Totais Pacote", "Qtd. Usada", "Unidade", "Subtotal (R$)"};
         Row headerComida = sheet.createRow(rowNum++);
-        headerComida.createCell(0).setCellValue("CUSTO DE COMIDA");
-        headerComida.getCell(0).setCellStyle(headerStyle);
+        for (int i = 0; i < colunasComida.length; i++) {
+            headerComida.createCell(i).setCellValue(colunasComida[i]);
+            headerComida.getCell(i).setCellStyle(headerStyle);
+        }
+
         for (GastoItem item : itensComida) {
             Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(item.getNome());
-            Cell subtotalCell = row.createCell(1);
+            int cellNum = 0;
+            row.createCell(cellNum++).setCellValue(item.getNome());
+            row.createCell(cellNum++).setCellValue(item.getTipoCalculo());
+            Cell precoInputCell = row.createCell(cellNum++);
+            precoInputCell.setCellValue(item.getPrecoInput());
+            precoInputCell.setCellStyle(currencyStyle);
+            Cell pesoUnidCell = row.createCell(cellNum++);
+            if (item.getPesoOuTotalUnidadesInput() > 0) {
+                pesoUnidCell.setCellValue(item.getPesoOuTotalUnidadesInput());
+            } else {
+                pesoUnidCell.setCellValue("N/A");
+            }
+            row.createCell(cellNum++).setCellValue(item.getQuantidadeUsada());
+            row.createCell(cellNum++).setCellValue(item.getUnidade());
+            Cell subtotalCell = row.createCell(cellNum++);
             subtotalCell.setCellValue(item.getSubtotal());
             subtotalCell.setCellStyle(currencyStyle);
             totalComida += item.getSubtotal();
         }
 
-        rowNum++; // Linha em branco
+        rowNum += 2;
 
-        // Seção de Energia
         double totalEnergia = 0;
+        String[] colunasEletro = {"Aparelho", "Potência (W)", "Tempo de Uso (min)", "Consumo (kWh)"};
         Row headerEletro = sheet.createRow(rowNum++);
-        headerEletro.createCell(0).setCellValue("CONSUMO DE ENERGIA");
-        headerEletro.getCell(0).setCellStyle(headerStyle);
+        for (int i = 0; i < colunasEletro.length; i++) {
+            headerEletro.createCell(i).setCellValue(colunasEletro[i]);
+            headerEletro.getCell(i).setCellStyle(headerStyle);
+        }
+
         for (GastoEletrico item : itensEletricos) {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(item.getNomeAparelho());
-            Cell consumoCell = row.createCell(1);
+            row.createCell(1).setCellValue(item.getPotenciaWatts());
+            row.createCell(2).setCellValue(item.getMinutosDeUso());
+            Cell consumoCell = row.createCell(3);
             consumoCell.setCellValue(item.getConsumoKwh());
             consumoCell.setCellStyle(kwhStyle);
             totalEnergia += item.getConsumoKwh();
         }
 
-        rowNum++; // Linha em branco
+        rowNum += 2;
 
-        // Totais
         Row totalComidaRow = sheet.createRow(rowNum++);
-        totalComidaRow.createCell(0).setCellValue("Total Comida");
+        totalComidaRow.createCell(0).setCellValue("Total Custo Comida");
         totalComidaRow.getCell(0).setCellStyle(headerStyle);
         Cell totalComidaCell = totalComidaRow.createCell(1);
         totalComidaCell.setCellValue(totalComida);
         totalComidaCell.setCellStyle(currencyStyle);
 
         Row totalEnergiaRow = sheet.createRow(rowNum++);
-        totalEnergiaRow.createCell(0).setCellValue("Total Energia");
+        totalEnergiaRow.createCell(0).setCellValue("Total Consumo Energia");
         totalEnergiaRow.getCell(0).setCellStyle(headerStyle);
         Cell totalEnergiaCell = totalEnergiaRow.createCell(1);
         totalEnergiaCell.setCellValue(totalEnergia);
         totalEnergiaCell.setCellStyle(kwhStyle);
 
-        sheet.autoSizeColumn(0);
-        sheet.autoSizeColumn(1);
+        for(int i = 0; i < colunasComida.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
 
         try (FileOutputStream fileOut = new FileOutputStream(caminhoArquivo)) {
             workbook.write(fileOut);
