@@ -1,0 +1,23 @@
+# Arquivos de build e output do Maven
+target/
+
+# Arquivos de log e sistema
+*.log
+
+# Pasta de dependências (caso use outras ferramentas)
+node_modules/
+
+# Arquivos de configuração específicos do IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos gerados pelo Launch4j
+*.l4j.xml
+
+# Planilhas geradas pela aplicação
+*.xlsx
